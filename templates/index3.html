@@ -1,0 +1,511 @@
+<!-- =====================================================
+templates/index.html
+===================================================== -->
+
+<!DOCTYPE html>
+<html>
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Smart Farm Dashboard</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    background:#0f172a;
+    color:white;
+    font-family:Arial;
+    padding:20px;
+}
+
+.header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:25px;
+    flex-wrap:wrap;
+}
+
+.title{
+    font-size:38px;
+    font-weight:bold;
+}
+
+.online{
+    background:#22c55e;
+    padding:10px 20px;
+    border-radius:12px;
+    font-weight:bold;
+}
+
+.grid{
+
+    display:grid;
+
+    grid-template-columns:
+    repeat(auto-fit, minmax(250px,1fr));
+
+    gap:20px;
+}
+
+.card{
+
+    background:#1e293b;
+
+    border-radius:20px;
+
+    padding:25px;
+
+    box-shadow:0 0 15px rgba(0,0,0,0.3);
+
+    transition:0.3s;
+}
+
+.card:hover{
+    transform:translateY(-5px);
+}
+
+.card-title{
+
+    color:#cbd5e1;
+
+    margin-bottom:15px;
+
+    font-size:20px;
+}
+
+.value{
+
+    font-size:50px;
+
+    font-weight:bold;
+}
+
+.temp{
+    color:#f97316;
+}
+
+.hum{
+    color:#38bdf8;
+}
+
+.on{
+    color:#22c55e;
+}
+
+.off{
+    color:#ef4444;
+}
+
+.sensor-ok{
+    color:#22c55e;
+}
+
+.sensor-error{
+    color:#ef4444;
+}
+
+.chart-box{
+
+    margin-top:25px;
+
+    background:#1e293b;
+
+    padding:20px;
+
+    border-radius:20px;
+}
+
+.buttons{
+
+    display:flex;
+
+    gap:10px;
+
+    margin-top:20px;
+}
+
+button{
+
+    flex:1;
+
+    padding:15px;
+
+    border:none;
+
+    border-radius:12px;
+
+    font-size:16px;
+
+    cursor:pointer;
+
+    font-weight:bold;
+}
+
+.btn-on{
+
+    background:#22c55e;
+
+    color:white;
+}
+
+.btn-off{
+
+    background:#ef4444;
+
+    color:white;
+}
+
+.footer{
+
+    text-align:center;
+
+    margin-top:30px;
+
+    color:#94a3b8;
+}
+
+.info{
+
+    margin-top:10px;
+
+    font-size:18px;
+}
+
+</style>
+
+</head>
+<body>
+
+<div class="header">
+
+    <div class="title">
+        SMART FARM DASHBOARD
+    </div>
+
+    <div class="online">
+        SYSTEM ONLINE
+    </div>
+
+</div>
+
+<div class="grid">
+
+    <div class="card">
+
+        <div class="card-title">
+            🌡 Temperature
+        </div>
+
+        <div class="value temp"
+             id="temperature">
+
+             0°C
+
+        </div>
+
+    </div>
+
+    <div class="card">
+
+        <div class="card-title">
+            💧 Humidity
+        </div>
+
+        <div class="value hum"
+             id="humidity">
+
+             0%
+
+        </div>
+
+    </div>
+
+    <div class="card">
+
+        <div class="card-title">
+            💡 Relay Status
+        </div>
+
+        <div class="value"
+             id="relay">
+
+             OFF
+
+        </div>
+
+    </div>
+
+    <div class="card">
+
+        <div class="card-title">
+            🧪 Sensor Status
+        </div>
+
+        <div class="value"
+             id="sensor_status">
+
+             UNKNOWN
+
+        </div>
+
+        <div class="info"
+             id="sensor_text">
+
+             Waiting data...
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<div class="chart-box">
+
+    <canvas id="chart"></canvas>
+
+</div>
+
+<div class="footer">
+
+    ESP32 + Flask + SQLite Monitoring
+
+</div>
+
+<script>
+
+const ctx =
+document.getElementById('chart');
+
+const chart = new Chart(ctx, {
+
+    type:'line',
+
+    data:{
+
+        labels:[],
+
+        datasets:[
+
+            {
+                label:'Temperature',
+
+                data:[],
+
+                borderColor:'#f97316',
+
+                backgroundColor:'#f97316',
+
+                tension:0.4
+            },
+
+            {
+                label:'Humidity',
+
+                data:[],
+
+                borderColor:'#38bdf8',
+
+                backgroundColor:'#38bdf8',
+
+                tension:0.4
+            }
+
+        ]
+    },
+
+    options:{
+
+        responsive:true,
+
+        plugins:{
+            legend:{
+                labels:{
+                    color:'white'
+                }
+            }
+        },
+
+        scales:{
+
+            x:{
+                ticks:{
+                    color:'white'
+                }
+            },
+
+            y:{
+                ticks:{
+                    color:'white'
+                }
+            }
+
+        }
+
+    }
+
+});
+
+
+// =====================================================
+// LOAD DATA
+// =====================================================
+
+async function loadData(){
+
+    const response =
+    await fetch('/latest');
+
+    const data =
+    await response.json();
+
+    if(data.length > 0){
+
+        const latest =
+        data[data.length - 1];
+
+        // =====================
+        // TEMPERATURE
+        // =====================
+
+        if(latest.temperature == -1){
+
+            document
+            .getElementById('temperature')
+            .innerHTML = 'ERROR';
+
+        }else{
+
+            document
+            .getElementById('temperature')
+            .innerHTML =
+            latest.temperature + '°C';
+
+        }
+
+        // =====================
+        // HUMIDITY
+        // =====================
+
+        if(latest.humidity == -1){
+
+            document
+            .getElementById('humidity')
+            .innerHTML = 'ERROR';
+
+        }else{
+
+            document
+            .getElementById('humidity')
+            .innerHTML =
+            latest.humidity + '%';
+
+        }
+
+        // =====================
+        // RELAY
+        // =====================
+
+        if(latest.relay == 1){
+
+            document
+            .getElementById('relay')
+            .innerHTML = 'ON';
+
+            document
+            .getElementById('relay')
+            .className = 'value on';
+
+        }else{
+
+            document
+            .getElementById('relay')
+            .innerHTML = 'OFF';
+
+            document
+            .getElementById('relay')
+            .className = 'value off';
+        }
+
+        // =====================
+        // SENSOR STATUS
+        // =====================
+
+        if(latest.sensor_status == 'OK'){
+
+            document
+            .getElementById('sensor_status')
+            .innerHTML = 'NORMAL';
+
+            document
+            .getElementById('sensor_status')
+            .className = 'value sensor-ok';
+
+            document
+            .getElementById('sensor_text')
+            .innerHTML =
+            'Sensor berjalan normal';
+
+        }else{
+
+            document
+            .getElementById('sensor_status')
+            .innerHTML = 'ERROR';
+
+            document
+            .getElementById('sensor_status')
+            .className = 'value sensor-error';
+
+            document
+            .getElementById('sensor_text')
+            .innerHTML =
+            'Sensor DHT11 bermasalah';
+        }
+
+        // =====================
+        // CHART
+        // =====================
+
+        chart.data.labels =
+        data.map(
+            item =>
+            item.created_at.split(' ')[1]
+        );
+
+        chart.data.datasets[0].data =
+        data.map(item => item.temperature);
+
+        chart.data.datasets[1].data =
+        data.map(item => item.humidity);
+
+        chart.update();
+    }
+}
+
+
+// =====================================================
+// AUTO REFRESH
+// =====================================================
+
+loadData();
+
+setInterval(loadData, 2000);
+
+</script>
+
+</body>
+</html>
