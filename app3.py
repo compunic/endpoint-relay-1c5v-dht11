@@ -4,7 +4,7 @@
 
 from flask import Flask, render_template, request, jsonify
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
@@ -174,6 +174,77 @@ def latest():
     return jsonify(data)
 
 # =====================================================
+# HISTORY FILTER
+# =====================================================
+
+@app.route('/history')
+def history():
+
+    period = request.args.get('period', '24')
+
+    start = request.args.get('start')
+    end = request.args.get('end')
+
+    conn = sqlite3.connect(DB)
+    conn.row_factory = sqlite3.Row
+
+    c = conn.cursor()
+
+    try:
+
+        # ==========================================
+        # CUSTOM DATE RANGE
+        # ==========================================
+
+        if start and end:
+
+            start = start.replace("T", " ")
+            end = end.replace("T", " ")
+
+            c.execute("""
+
+                SELECT *
+
+                FROM sensor_data
+
+                WHERE created_at
+                BETWEEN ? AND ?
+
+                ORDER BY id ASC
+
+            """, (start, end))
+
+        else:
+
+            jam = int(period)
+
+            batas = datetime.now() - timedelta(hours=jam)
+
+            c.execute("""
+
+                SELECT *
+
+                FROM sensor_data
+
+                WHERE created_at >= ?
+
+                ORDER BY id ASC
+
+            """, (
+
+                batas.strftime("%Y-%m-%d %H:%M:%S"),
+
+            ))
+
+        rows = c.fetchall()
+
+        return jsonify([dict(row) for row in rows])
+
+    finally:
+
+        conn.close()
+
+# =====================================================
 # RELAY CONTROL
 # =====================================================
 
@@ -238,6 +309,64 @@ def status():
         "relay": 0,
         "sensor_status": "NO DATA",
         "created_at": "-"
+
+    })
+# =====================================================
+# DEVICE STATUS
+# =====================================================
+
+@app.route('/device_status')
+def device_status():
+
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+
+    c.execute("""
+
+        SELECT created_at
+
+        FROM sensor_data
+
+        ORDER BY id DESC
+
+        LIMIT 1
+
+    """)
+
+    row = c.fetchone()
+
+    conn.close()
+
+    if not row:
+
+        return jsonify({
+
+            "status": "OFFLINE",
+            "last_update": "-"
+
+        })
+
+    last_update = datetime.strptime(
+        row[0],
+        "%Y-%m-%d %H:%M:%S"
+    )
+
+    diff = (
+        datetime.now() - last_update
+    ).total_seconds()
+
+    if diff <= 10:
+
+        status = "ONLINE"
+
+    else:
+
+        status = "OFFLINE"
+
+    return jsonify({
+
+        "status": status,
+        "last_update": row[0]
 
     })
 
