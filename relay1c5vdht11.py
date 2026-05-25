@@ -16,44 +16,28 @@ wifi = network.WLAN(network.STA_IF)
 wifi.active(True)
 
 # ===================================
-# CONNECT WIFI
+# WIFI LED (GPIO 2)
 # ===================================
 
-def connect_wifi():
-
-    if not wifi.isconnected():
-
-        print("Connecting WiFi...")
-
-        wifi.connect(SSID, PASSWORD)
-
-        timeout = 0
-
-        while not wifi.isconnected():
-
-            sleep(1)
-
-            timeout += 1
-
-            if timeout > 20:
-                print("WiFi Failed")
-                return False
-
-        print("WiFi Connected")
-        print(wifi.ifconfig())
-
-    return True
-
-connect_wifi()
+wifi_led = Pin(2, Pin.OUT)
+wifi_led.value(0)
 
 # ===================================
-# RELAY
+# RELAY (GPIO 5)
 # ===================================
 
-relay = Pin(2, Pin.OUT)
+relay = Pin(5, Pin.OUT)
+relay.value(0)
 
 # ===================================
-# DHT11
+# BUZZER (GPIO 19)
+# ===================================
+
+buzzer = Pin(19, Pin.OUT)
+buzzer.value(0)
+
+# ===================================
+# DHT11 (GPIO 4)
 # ===================================
 
 dht_sensor = dht.DHT11(Pin(4))
@@ -70,6 +54,73 @@ POST_SERVER = "http://10.15.1.250:5008/update"
 # ===================================
 
 relay_status = 0
+
+# ===================================
+# BUZZER BEEP 2X
+# ===================================
+
+def beep_success():
+
+    try:
+
+        for i in range(2):
+
+            buzzer.value(1)
+            sleep(0.15)
+
+            buzzer.value(0)
+            sleep(0.15)
+
+    except Exception as e:
+
+        print("Buzzer Error:", e)
+
+# ===================================
+# CONNECT WIFI
+# ===================================
+
+def connect_wifi():
+
+    if not wifi.isconnected():
+
+        wifi_led.value(0)
+
+        print("================================")
+        print("Connecting WiFi...")
+        print("================================")
+
+        wifi.connect(SSID, PASSWORD)
+
+        timeout = 0
+
+        while not wifi.isconnected():
+
+            sleep(1)
+
+            timeout += 1
+
+            print("Waiting...", timeout)
+
+            if timeout > 20:
+
+                print("WiFi Failed")
+
+                wifi_led.value(0)
+
+                return False
+
+        print("================================")
+        print("WiFi Connected")
+        print(wifi.ifconfig())
+        print("================================")
+
+        wifi_led.value(1)
+
+    else:
+
+        wifi_led.value(1)
+
+    return True
 
 # ===================================
 # READ SENSOR
@@ -106,7 +157,13 @@ def read_sensor():
         return None, None
 
 # ===================================
-# LOOP
+# START WIFI
+# ===================================
+
+connect_wifi()
+
+# ===================================
+# MAIN LOOP
 # ===================================
 
 while True:
@@ -117,7 +174,10 @@ while True:
         # CHECK WIFI
         # ==========================
 
-        connect_wifi()
+        if not connect_wifi():
+
+            sleep(5)
+            continue
 
         # ==========================
         # SENSOR RETRY
@@ -142,7 +202,7 @@ while True:
             sleep(1)
 
         # ==========================
-        # SENSOR RUSAK
+        # SENSOR ERROR
         # ==========================
 
         if suhu is None:
@@ -151,7 +211,6 @@ while True:
             print("DHT11 SENSOR FAILED")
             print("========================")
 
-            # MATIKAN RELAY UNTUK KEAMANAN
             relay.value(0)
             relay_status = 0
 
@@ -173,7 +232,12 @@ while True:
 
                 response.close()
 
+                print("Error Status Sent")
+
+                beep_success()
+
             except Exception as e:
+
                 print("POST Error:", e)
 
             sleep(5)
@@ -185,8 +249,8 @@ while True:
         # ==========================
 
         print("========================")
-        print("Suhu:", suhu)
-        print("Kelembaban:", kelembaban)
+        print("Suhu       :", suhu, "°C")
+        print("Kelembaban :", kelembaban, "%")
         print("========================")
 
         # ==========================
@@ -198,14 +262,14 @@ while True:
             relay.value(0)
             relay_status = 0
 
-            print("Lampu OFF")
+            print("Lampu OFF (AUTO)")
 
         elif suhu <= 30:
 
             relay.value(1)
             relay_status = 1
 
-            print("Lampu ON")
+            print("Lampu ON (AUTO)")
 
         else:
 
@@ -226,10 +290,14 @@ while True:
                     relay.value(1)
                     relay_status = 1
 
+                    print("Lampu ON (SERVER)")
+
                 else:
 
                     relay.value(0)
                     relay_status = 0
+
+                    print("Lampu OFF (SERVER)")
 
             except Exception as e:
 
@@ -255,10 +323,15 @@ while True:
                 json=payload
             )
 
-            print("Data Sent")
+            print("========================")
+            print("DATA SENT")
             print(payload)
+            print("========================")
 
             response.close()
+
+            # BEEP 2X JIKA BERHASIL
+            beep_success()
 
         except Exception as e:
 
