@@ -1,19 +1,15 @@
-<!-- =====================================================
-templates/index.html
-===================================================== -->
-
 <!DOCTYPE html>
 <html>
 <head>
 
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
-    <title>Smart Farm Dashboard</title>
+<title>Smart Farm Dashboard</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 
@@ -26,7 +22,7 @@ templates/index.html
 body{
     background:#0f172a;
     color:white;
-    font-family:Arial;
+    font-family:Arial,sans-serif;
     padding:20px;
 }
 
@@ -34,8 +30,9 @@ body{
     display:flex;
     justify-content:space-between;
     align-items:center;
-    margin-bottom:25px;
+    margin-bottom:20px;
     flex-wrap:wrap;
+    gap:15px;
 }
 
 .title{
@@ -55,7 +52,7 @@ body{
     display:grid;
 
     grid-template-columns:
-    repeat(auto-fit, minmax(250px,1fr));
+    repeat(auto-fit,minmax(250px,1fr));
 
     gap:20px;
 }
@@ -74,7 +71,7 @@ body{
 }
 
 .card:hover{
-    transform:translateY(-5px);
+    transform:translateY(-4px);
 }
 
 .card-title{
@@ -83,12 +80,12 @@ body{
 
     margin-bottom:15px;
 
-    font-size:20px;
+    font-size:18px;
 }
 
 .value{
 
-    font-size:50px;
+    font-size:42px;
 
     font-weight:bold;
 }
@@ -117,6 +114,69 @@ body{
     color:#ef4444;
 }
 
+.info{
+
+    margin-top:10px;
+
+    color:#cbd5e1;
+
+    font-size:16px;
+}
+
+.filter-box{
+
+    margin-top:25px;
+
+    background:#1e293b;
+
+    padding:20px;
+
+    border-radius:20px;
+}
+
+.filter-row{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:10px;
+
+    align-items:center;
+}
+
+select,
+input[type="datetime-local"]{
+
+    background:#0f172a;
+
+    color:white;
+
+    border:1px solid #334155;
+
+    border-radius:10px;
+
+    padding:12px;
+}
+
+button{
+
+    border:none;
+
+    border-radius:10px;
+
+    padding:12px 20px;
+
+    cursor:pointer;
+
+    font-weight:bold;
+}
+
+.btn-filter{
+    background:#22c55e;
+    color:white;
+}
+
 .chart-box{
 
     margin-top:25px;
@@ -128,65 +188,30 @@ body{
     border-radius:20px;
 }
 
-.buttons{
-
-    display:flex;
-
-    gap:10px;
-
-    margin-top:20px;
-}
-
-button{
-
-    flex:1;
-
-    padding:15px;
-
-    border:none;
-
-    border-radius:12px;
-
-    font-size:16px;
-
-    cursor:pointer;
-
-    font-weight:bold;
-}
-
-.btn-on{
-
-    background:#22c55e;
-
-    color:white;
-}
-
-.btn-off{
-
-    background:#ef4444;
-
-    color:white;
-}
-
 .footer{
 
-    text-align:center;
+    margin-top:25px;
 
-    margin-top:30px;
+    text-align:center;
 
     color:#94a3b8;
 }
 
-.info{
+@media(max-width:768px){
 
-    margin-top:10px;
+    .title{
+        font-size:26px;
+    }
 
-    font-size:18px;
+    .value{
+        font-size:30px;
+    }
 }
 
 </style>
 
 </head>
+
 <body>
 
 <div class="header">
@@ -212,7 +237,7 @@ button{
         <div class="value temp"
              id="temperature">
 
-             0°C
+            0°C
 
         </div>
 
@@ -227,7 +252,7 @@ button{
         <div class="value hum"
              id="humidity">
 
-             0%
+            0%
 
         </div>
 
@@ -239,10 +264,10 @@ button{
             💡 Relay Status
         </div>
 
-        <div class="value"
+        <div class="value off"
              id="relay">
 
-             OFF
+            OFF
 
         </div>
 
@@ -257,14 +282,36 @@ button{
         <div class="value"
              id="sensor_status">
 
-             UNKNOWN
+            UNKNOWN
 
         </div>
 
         <div class="info"
              id="sensor_text">
 
-             Waiting data...
+            Waiting data...
+
+        </div>
+
+    </div>
+
+    <div class="card">
+
+        <div class="card-title">
+            📡 IoT Device
+        </div>
+
+        <div class="value off"
+             id="device_status">
+
+            OFFLINE
+
+        </div>
+
+        <div class="info"
+             id="device_time">
+
+            Waiting...
 
         </div>
 
@@ -272,7 +319,42 @@ button{
 
 </div>
 
+<div class="filter-box">
 
+    <div class="card-title">
+        📅 Data Filter
+    </div>
+
+    <div class="filter-row">
+
+        <select id="period">
+
+            <option value="1">1 Hour</option>
+            <option value="6">6 Hours</option>
+            <option value="12">12 Hours</option>
+            <option value="24" selected>24 Hours</option>
+            <option value="168">7 Days</option>
+            <option value="720">30 Days</option>
+
+        </select>
+
+        <input type="datetime-local"
+               id="start_date">
+
+        <input type="datetime-local"
+               id="end_date">
+
+        <button
+            class="btn-filter"
+            onclick="loadData()">
+
+            Apply Filter
+
+        </button>
+
+    </div>
+
+</div>
 
 <div class="chart-box">
 
@@ -282,16 +364,17 @@ button{
 
 <div class="footer">
 
-    ESP32 + Flask + SQLite Monitoring
+    ESP32 + Flask + SQLite Monitoring System
 
 </div>
 
 <script>
 
 const ctx =
-document.getElementById('chart');
+document.getElementById("chart");
 
-const chart = new Chart(ctx, {
+const chart =
+new Chart(ctx, {
 
     type:'line',
 
@@ -302,6 +385,7 @@ const chart = new Chart(ctx, {
         datasets:[
 
             {
+
                 label:'Temperature',
 
                 data:[],
@@ -311,9 +395,11 @@ const chart = new Chart(ctx, {
                 backgroundColor:'#f97316',
 
                 tension:0.4
+
             },
 
             {
+
                 label:'Humidity',
 
                 data:[],
@@ -323,6 +409,7 @@ const chart = new Chart(ctx, {
                 backgroundColor:'#38bdf8',
 
                 tension:0.4
+
             }
 
         ]
@@ -332,12 +419,18 @@ const chart = new Chart(ctx, {
 
         responsive:true,
 
+        maintainAspectRatio:false,
+
         plugins:{
+
             legend:{
+
                 labels:{
                     color:'white'
                 }
+
             }
+
         },
 
         scales:{
@@ -355,155 +448,204 @@ const chart = new Chart(ctx, {
             }
 
         }
-
     }
-
 });
 
+async function loadDeviceStatus(){
 
-// =====================================================
-// LOAD DATA
-// =====================================================
+    try{
+
+        const response =
+        await fetch('/device_status');
+
+        const data =
+        await response.json();
+
+        const status =
+        document.getElementById(
+            "device_status"
+        );
+
+        if(data.status === "ONLINE"){
+
+            status.innerHTML =
+            "ONLINE";
+
+            status.className =
+            "value on";
+
+        }else{
+
+            status.innerHTML =
+            "OFFLINE";
+
+            status.className =
+            "value off";
+        }
+
+        document
+        .getElementById(
+            "device_time"
+        )
+        .innerHTML =
+        "Last Update : " +
+        data.last_update;
+
+    }catch(e){
+
+        console.log(e);
+    }
+}
 
 async function loadData(){
 
-    const response =
-    await fetch('/latest');
+    try{
 
-    const data =
-    await response.json();
+        const period =
+        document.getElementById(
+            "period"
+        ).value;
 
-    if(data.length > 0){
+        const start =
+        document.getElementById(
+            "start_date"
+        ).value;
+
+        const end =
+        document.getElementById(
+            "end_date"
+        ).value;
+
+        let url =
+        "/history?period=" +
+        period;
+
+        if(start && end){
+
+            url =
+            "/history?start=" +
+            start +
+            "&end=" +
+            end;
+        }
+
+        const response =
+        await fetch(url);
+
+        const data =
+        await response.json();
+
+        if(data.length === 0)
+            return;
 
         const latest =
         data[data.length - 1];
 
-        // =====================
-        // TEMPERATURE
-        // =====================
+        document
+        .getElementById(
+            "temperature"
+        ).innerHTML =
 
-        if(latest.temperature == -1){
+        latest.temperature == -1
+        ? "ERROR"
+        : latest.temperature + "°C";
 
-            document
-            .getElementById('temperature')
-            .innerHTML = 'ERROR';
+        document
+        .getElementById(
+            "humidity"
+        ).innerHTML =
 
-        }else{
+        latest.humidity == -1
+        ? "ERROR"
+        : latest.humidity + "%";
 
-            document
-            .getElementById('temperature')
-            .innerHTML =
-            latest.temperature + '°C';
-
-        }
-
-        // =====================
-        // HUMIDITY
-        // =====================
-
-        if(latest.humidity == -1){
-
-            document
-            .getElementById('humidity')
-            .innerHTML = 'ERROR';
-
-        }else{
-
-            document
-            .getElementById('humidity')
-            .innerHTML =
-            latest.humidity + '%';
-
-        }
-
-        // =====================
-        // RELAY
-        // =====================
+        const relay =
+        document.getElementById(
+            "relay"
+        );
 
         if(latest.relay == 1){
 
-            document
-            .getElementById('relay')
-            .innerHTML = 'ON';
+            relay.innerHTML =
+            "ON";
 
-            document
-            .getElementById('relay')
-            .className = 'value on';
+            relay.className =
+            "value on";
 
         }else{
 
-            document
-            .getElementById('relay')
-            .innerHTML = 'OFF';
+            relay.innerHTML =
+            "OFF";
 
-            document
-            .getElementById('relay')
-            .className = 'value off';
+            relay.className =
+            "value off";
         }
 
-        // =====================
-        // SENSOR STATUS
-        // =====================
+        const sensorStatus =
+        document.getElementById(
+            "sensor_status"
+        );
 
-        if(latest.sensor_status == 'OK'){
+        const sensorText =
+        document.getElementById(
+            "sensor_text"
+        );
 
-            document
-            .getElementById('sensor_status')
-            .innerHTML = 'NORMAL';
+        if(latest.sensor_status == "OK"){
 
-            document
-            .getElementById('sensor_status')
-            .className = 'value sensor-ok';
+            sensorStatus.innerHTML =
+            "NORMAL";
 
-            document
-            .getElementById('sensor_text')
-            .innerHTML =
-            'Sensor berjalan normal';
+            sensorStatus.className =
+            "value sensor-ok";
+
+            sensorText.innerHTML =
+            "Sensor berjalan normal";
 
         }else{
 
-            document
-            .getElementById('sensor_status')
-            .innerHTML = 'ERROR';
+            sensorStatus.innerHTML =
+            "ERROR";
 
-            document
-            .getElementById('sensor_status')
-            .className = 'value sensor-error';
+            sensorStatus.className =
+            "value sensor-error";
 
-            document
-            .getElementById('sensor_text')
-            .innerHTML =
-            'Sensor DHT11 bermasalah';
+            sensorText.innerHTML =
+            "Sensor DHT11 bermasalah";
         }
-
-        // =====================
-        // CHART
-        // =====================
 
         chart.data.labels =
-        data.map(
-            item =>
-            item.created_at.split(' ')[1]
+        data.map(item =>
+            item.created_at
         );
 
         chart.data.datasets[0].data =
-        data.map(item => item.temperature);
+        data.map(item =>
+            item.temperature
+        );
 
         chart.data.datasets[1].data =
-        data.map(item => item.humidity);
+        data.map(item =>
+            item.humidity
+        );
 
         chart.update();
+
+        loadDeviceStatus();
+
+    }catch(err){
+
+        console.log(err);
     }
 }
 
-
-// =====================================================
-// AUTO REFRESH
-// =====================================================
-
 loadData();
 
-setInterval(loadData, 2000);
+setInterval(() => {
+
+    loadData();
+
+}, 2000);
 
 </script>
 
